@@ -4,9 +4,9 @@ services:
     container_name: postgres-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: storegest_db
-      POSTGRES_USER: storegest_user
-      POSTGRES_PASSWORD: storegest_password
+      POSTGRES_DB: LivePreview
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
     ports:
       - "5432:5432"
     volumes:
@@ -22,6 +22,17 @@ services:
     ports:
       - "5050:80"
 
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
 volumes:
   postgres-data:
+    driver: local
+  redis-data:
     driver: local

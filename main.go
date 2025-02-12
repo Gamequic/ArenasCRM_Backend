@@ -25,6 +25,7 @@ func main() {
 	defer Logger.Sync() // flushes buffer, if any
 	utils.Dotconfig()
 	pkg.InitDB()
+	pkg.InitRedis()
 	mainRouter := mux.NewRouter()
 	port := os.Getenv("PORT")
 
