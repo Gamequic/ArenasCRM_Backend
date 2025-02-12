@@ -13,6 +13,7 @@ import (
 	photoservice "storegestserver/pkg/features/photos/service"
 	"storegestserver/pkg/features/users"
 	userservice "storegestserver/pkg/features/users/service"
+	"storegestserver/pkg/session"
 
 	"github.com/gorilla/mux"
 )
@@ -24,6 +25,7 @@ func RegisterSubRoutes(router *mux.Router) {
 	foodservice.InitFoodService()
 	ordersservice.InitOrdersService()
 	photoservice.InitPhotosService()
+	session.InitSessionService()
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
 

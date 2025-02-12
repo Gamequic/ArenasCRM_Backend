@@ -23,36 +23,83 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(token)
 }
 
-// func RequestPasswordChange(w http.ResponseWriter, r *http.Request) {
-// 	var body authstruct.RequestChangePassword
-// 	json.NewDecoder(r.Body).Decode(&body)
-// 	var response map[string]interface{} = authservice.RequestPasswordChange(body.Email)
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(response)
-// }
+// ValidateToken checks if the token is valid and the session is active
+func ValidateToken(w http.ResponseWriter, r *http.Request) {
+	// Get the token from the context (set by the middleware)
+	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
 
-// func ApplyPasswordChange(w http.ResponseWriter, r *http.Request) {
-// 	var user userservice.Users
-// 	json.NewDecoder(r.Body).Decode(&user)
-// 	userservice.Update(&user)
-// 	w.WriteHeader(http.StatusOK)
-// 	json.NewEncoder(w).Encode(user)
-// }
+	// Validate the session in Redis
+	err := authservice.ValidateSession(userClaims.SessionID, userClaims.Id)
+	if err != nil {
+		panic(middlewares.GormError{
+			Code:    http.StatusUnauthorized,
+			Message: "Session expired or invalid",
+			IsGorm:  false,
+		})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"valid":    true,
+		"user_id":  userClaims.Id,
+		"email":    userClaims.Email,
+		"username": userClaims.Username,
+	})
+}
 
 // Register function
 
 func RegisterSubRoutes(router *mux.Router) {
 	authRouter := router.PathPrefix("/auth").Subrouter()
 
-	// ValidatorHandler
+	// ValidatorHandler for login
 	authLogInValidator := authRouter.NewRoute().Subrouter()
 	authLogInValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(authstruct.LogIn{})))
 
-	// authRequestPassword := authRouter.NewRoute().Subrouter()
-	// authRequestPassword.Use(middlewares.ValidatorHandler(reflect.TypeOf(authstruct.RequestChangePassword{})))
+	// Protected routes with AuthHandler
+	protectedRoutes := authRouter.NewRoute().Subrouter()
+	protectedRoutes.Use(middlewares.AuthHandler)
 
-	// Endpoints
+	// Public endpoints (login)
 	authLogInValidator.HandleFunc("/login", LogIn).Methods("POST")
-	// authRequestPassword.HandleFunc("/requestchangepassword", RequestPasswordChange).Methods("POST")
+
+	// Protected endpoints
+	protectedRoutes.HandleFunc("/validate", ValidateToken).Methods("GET")
+	protectedRoutes.HandleFunc("/logout", Logout).Methods("POST")
+	protectedRoutes.HandleFunc("/sessions", GetSessions).Methods("GET")
+}
+
+// New handlers for protected routes
+func Logout(w http.ResponseWriter, r *http.Request) {
+	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
+
+	err := authservice.Logout(userClaims.Id, userClaims.SessionID)
+	if err != nil {
+		panic(middlewares.GormError{
+			Code:    http.StatusInternalServerError,
+			Message: "Error logging out",
+			IsGorm:  false,
+		})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Logged out successfully",
+	})
+}
+
+func GetSessions(w http.ResponseWriter, r *http.Request) {
+	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
+
+	sessions, err := authservice.GetUserSessions(userClaims.Id)
+	if err != nil {
+		panic(middlewares.GormError{
+			Code:    http.StatusInternalServerError,
+			Message: "Error getting sessions",
+			IsGorm:  false,
+		})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(sessions)
 }

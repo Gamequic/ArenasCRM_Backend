@@ -1,10 +1,13 @@
 package authservice
 
 import (
-	"fmt"
+	"context"
 	"os"
+	"storegestserver/pkg/database"
 	authstruct "storegestserver/pkg/features/auth/struct"
 	userservice "storegestserver/pkg/features/users/service"
+	"storegestserver/pkg/session"
+	"storegestserver/utils"
 	"storegestserver/utils/middlewares"
 	"time"
 
@@ -17,7 +20,7 @@ var Logger *zap.Logger
 
 // Initialize the auth service
 func InitAuthService() {
-
+	Logger = utils.NewLogger()
 }
 
 // Auth Operations
@@ -29,17 +32,16 @@ func LogIn(u *authstruct.LogIn) string {
 	var user userservice.Users
 	userservice.FindByEmail(&user, u.Email)
 
-	//Check if password is correct
+	// Check password
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password))
 	if err != nil {
-		fmt.Println(err.Error())
 		if err.Error() == "crypto/bcrypt: hashedPassword is not the hash of the given password" {
 			panic(middlewares.GormError{Code: 401, Message: "Password is wrong", IsGorm: true})
-		} else {
-			panic(err.Error())
 		}
+		panic(err.Error())
 	}
 
+	// Create token
 	expirationTime := time.Now().Add(30 * time.Minute)
 	TokenData := &authstruct.TokenStruct{
 		Username: user.Name,
@@ -56,58 +58,69 @@ func LogIn(u *authstruct.LogIn) string {
 		panic(err)
 	}
 
+	// Store session in Redis using user ID as key
+	sessionData := &authstruct.Session{
+		UserID:   int(user.ID),
+		Email:    user.Email,
+		Username: user.Name,
+		Token:    tokenString,
+	}
+
+	err = session.StoreSession(int(user.ID), sessionData)
+	if err != nil {
+		panic(err)
+	}
+
 	return tokenString
 }
 
-// func RequestPasswordChange(Email string) map[string]interface{} {
-// 	var user userservice.Users
-// 	userservice.FindByEmail(&user, Email)
+func GetUserSessions(userId int) ([]authstruct.Session, error) {
+	return session.GetUserSessions(userId)
+}
 
-// 	m := mail.NewMessage()
-// 	m.SetHeader("From", "demiancalleros1@gmail.com")
-// 	m.SetHeader("To", Email)
-// 	m.SetHeader("Subject", "Asunto del correo")
-// 	m.SetBody("text/plain", "Este es el cuerpo del correo.")
+func Logout(userId int, tokenString string) error {
+	return session.RemoveSession(userId, tokenString)
+}
 
-// 	// Configura el servidor SMTP
-// 	d := mail.NewDialer("smtp-relay.gmail.com", 587, "demiancalleros1@gmail.com", "")
+func ValidateSession(sessionID string, userID int) error {
+	return session.ValidateSession(sessionID, userID)
+}
 
-// 	// Envía el correo
-// 	if err := d.DialAndSend(m); err != nil {
-// 		log.Fatal(err)
-// 	}
+func ValidatePasswordResetToken(token string) (string, error) {
+	ctx := context.Background()
 
-// 	return map[string]interface{}{
-// 		"message": "Email sent!",
-// 	}
-// }
+	email, err := database.RedisClient.Get(ctx, "pwd_reset:"+token).Result()
+	if err != nil {
+		Logger.Error("Invalid or expired password reset token", zap.Error(err))
+		return "", err
+	}
 
-// func ApplyPasswordChange(u *Users) {
-// 	// No autorize editing no existing users
-// 	var previousUsers Users
-// 	FindOne(&previousUsers, uint(u.ID))
+	return email, nil
+}
 
-// 	// Encrypt password
-// 	bytes, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-// 	u.Password = string(bytes)
+func ResetPassword(token string, newPassword string) error {
+	email, err := ValidatePasswordResetToken(token)
+	if err != nil {
+		return err
+	}
 
-// 	if err := database.DB.Save(u).Error; err != nil {
-// 		if err.Error() == `ERROR: duplicate key value violates unique constraint "uni_users_email" (SQLSTATE 23505)` {
-// 			panic(middlewares.GormError{Code: 409, Message: "Email is on use", IsGorm: true})
-// 		} else {
-// 			panic(err)
-// 		}
-// 	}
-// }
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		Logger.Error("Error hashing password", zap.Error(err))
+		return err
+	}
 
-// func Delete(id int) {
-// 	Logger = utils.NewLogger()
+	// Update user password in database
+	var user userservice.Users
+	userservice.FindByEmail(&user, email)
+	user.Password = string(hashedPassword)
+	database.DB.Save(&user)
 
-// 	// No autorize deleting no existing users
-// 	var previousUsers Users
-// 	FindOne(&previousUsers, uint(id))
+	// Delete reset token from Redis
+	ctx := context.Background()
+	database.RedisClient.Del(ctx, "pwd_reset:"+token)
 
-// 	if err := database.DB.Delete(&Users{}, id).Error; err != nil {
-// 		panic(err)
-// 	}
-// }
+	Logger.Info("Password reset successful", zap.String("email", email))
+	return nil
+}

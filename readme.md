@@ -31,6 +31,13 @@
 
 **Note** The project uses a PostgreSQL database, so ensure you have a connection to one before running the project.
 
+**API Endpoints**
+
+- **POST /auth/login**: Log in a user and return a JWT.
+- **GET /auth/validate**: Validate if the JWT is still valid.
+- **POST /auth/logout**: Log out a user and invalidate the session.
+- **GET /auth/sessions**: Get all active sessions for a user.
+
 This documentation provides an overview of the project’s capabilities and features. It also explains the purpose of the `.env` file and how to execute the project.
 
 As a developer or recruiter for this project, you can use this document as a reference guide to understand the scope and requirements of the e-commerce platform.
