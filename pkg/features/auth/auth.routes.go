@@ -72,8 +72,9 @@ func RegisterSubRoutes(router *mux.Router) {
 // New handlers for protected routes
 func Logout(w http.ResponseWriter, r *http.Request) {
 	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
+	tokenString := r.Context().Value("userToken").(string)
 
-	err := authservice.Logout(userClaims.Id, userClaims.SessionID)
+	err := authservice.Logout(userClaims.Id, tokenString)
 	if err != nil {
 		panic(middlewares.GormError{
 			Code:    http.StatusInternalServerError,

@@ -69,6 +69,7 @@ func AuthHandler(next http.Handler) http.Handler {
 
 		// Create context with both userId and full tokenData
 		ctx := context.WithValue(r.Context(), "userId", tokenData.Id)
+		ctx = context.WithValue(ctx, "userToken", tokenString)
 		ctx = context.WithValue(ctx, "user", tokenData)
 
 		next.ServeHTTP(w, r.WithContext(ctx))

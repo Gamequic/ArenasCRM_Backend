@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,11 +48,13 @@ func LogIn(u *authstruct.LogIn) string {
 
 	// Create token
 	expirationTime := time.Now().Add(30 * time.Minute)
+	sessionID := uuid.New().String() // Generate a new session ID
 	TokenData := &authstruct.TokenStruct{
-		Username: user.Name,
-		Email:    user.Email,
-		Id:       int(user.ID),
-		Profiles: profiles,
+		Username:  user.Name,
+		Email:     user.Email,
+		Id:        int(user.ID),
+		SessionID: sessionID,
+		Profiles:  profiles,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -65,10 +68,11 @@ func LogIn(u *authstruct.LogIn) string {
 
 	// Store session in Redis using user ID as key
 	sessionData := &authstruct.Session{
-		UserID:   int(user.ID),
-		Email:    user.Email,
-		Username: user.Name,
-		Token:    tokenString,
+		UserID:    int(user.ID),
+		Email:     user.Email,
+		Username:  user.Name,
+		Token:     tokenString,
+		SessionID: sessionID,
 	}
 
 	err = session.StoreSession(int(user.ID), sessionData)

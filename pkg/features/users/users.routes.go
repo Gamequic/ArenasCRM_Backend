@@ -54,6 +54,21 @@ func findOne(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+func findMe(w http.ResponseWriter, r *http.Request) {
+	// Get the user ID from the context
+	userIdInterface := r.Context().Value("userId")
+	if userIdInterface == nil {
+		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+	userId := uint(userIdInterface.(int))
+
+	var user userservice.Users
+	var httpsResponse int = userservice.FindOne(&user, userId)
+	w.WriteHeader(httpsResponse)
+	json.NewEncoder(w).Encode(user)
+}
+
 func update(w http.ResponseWriter, r *http.Request) {
 	var user userservice.Users
 	json.NewDecoder(r.Body).Decode(&user)
@@ -92,15 +107,19 @@ func RegisterSubRoutes(router *mux.Router) {
 
 	userCreateValidator := usersRouter.NewRoute().Subrouter()
 	userCreateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.CreateUser{})))
-	usersUpdateValidator.Use(middlewares.AuthHandler)
+	userCreateValidator.Use(middlewares.AuthHandler)
 
 	usersRoot := usersRouter.NewRoute().Subrouter()
 	usersRoot.Use(middlewares.RootHandler)
+
+	authenticatedRouter := usersRouter.NewRoute().Subrouter()
+	authenticatedRouter.Use(middlewares.AuthHandler)
 
 	usersUpdateValidator.HandleFunc("/", update).Methods("PATCH")
 	userCreateValidator.HandleFunc("/", create).Methods("POST")
 
 	usersRoot.HandleFunc("/", find).Methods("GET")
 	usersRoot.HandleFunc("/{id}", findOne).Methods("GET")
+	authenticatedRouter.HandleFunc("/find/me", findMe).Methods("GET")
 	usersRoot.HandleFunc("/{id}", delete).Methods("DELETE")
 }
