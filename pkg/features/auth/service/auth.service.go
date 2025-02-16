@@ -41,12 +41,17 @@ func LogIn(u *authstruct.LogIn) string {
 		panic(err.Error())
 	}
 
+	// Load user profiles
+	var profiles []string
+	database.DB.Raw("SELECT profile FROM user_profiles WHERE user_id = ?", user.ID).Scan(&profiles)
+
 	// Create token
 	expirationTime := time.Now().Add(30 * time.Minute)
 	TokenData := &authstruct.TokenStruct{
 		Username: user.Name,
 		Email:    user.Email,
 		Id:       int(user.ID),
+		Profiles: profiles,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},

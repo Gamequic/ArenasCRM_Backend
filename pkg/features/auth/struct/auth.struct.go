@@ -4,10 +4,11 @@ import "github.com/golang-jwt/jwt"
 
 type TokenStruct struct {
 	jwt.StandardClaims
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Id        int    `json:"id"`
-	SessionID string `json:"session_id"` // Agregamos SessionID
+	Username  string   `json:"username"`
+	Email     string   `json:"email"`
+	Id        int      `json:"id"`
+	SessionID string   `json:"session_id"`
+	Profiles  []string `json:"profiles"`
 }
 
 type LogIn struct {
