@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 
 -- Insert default profiles if not exist
 INSERT INTO profiles (name) 
-VALUES ('admin'), ('user'), ('guest')
+VALUES ('root'), ('admin'), ('guest'), ('users'), ('performance'), ('logs')
 ON CONFLICT (name) DO NOTHING;

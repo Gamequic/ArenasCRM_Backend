@@ -44,7 +44,7 @@ func LogIn(u *authstruct.LogIn) string {
 
 	// Load user profiles
 	var profiles []string
-	database.DB.Raw("SELECT profile FROM user_profiles WHERE user_id = ?", user.ID).Scan(&profiles)
+	database.DB.Raw("SELECT profile_id FROM user_profiles WHERE user_id = ?", user.ID).Scan(&profiles)
 
 	// Create token
 	expirationTime := time.Now().Add(30 * time.Minute)

@@ -56,7 +56,7 @@ func findOne(w http.ResponseWriter, r *http.Request) {
 
 func findMe(w http.ResponseWriter, r *http.Request) {
 	// Get the user ID from the context
-	userIdInterface := r.Context().Value("userId")
+	userIdInterface := r.Context().Value(middlewares.UserIDKey)
 	if userIdInterface == nil {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
@@ -73,7 +73,7 @@ func update(w http.ResponseWriter, r *http.Request) {
 	var user userservice.Users
 	json.NewDecoder(r.Body).Decode(&user)
 
-	userIdInterface := r.Context().Value("userId")
+	userIdInterface := r.Context().Value(middlewares.UserIDKey)
 	userId := uint(userIdInterface.(int))
 
 	userservice.Update(&user, userId)
@@ -100,26 +100,27 @@ func delete(w http.ResponseWriter, r *http.Request) {
 func RegisterSubRoutes(router *mux.Router) {
 	usersRouter := router.PathPrefix("/users").Subrouter()
 
-	// ValidatorHandler
+	// ValidatorHandler - Update
 	usersUpdateValidator := usersRouter.NewRoute().Subrouter()
 	usersUpdateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.UpdateUser{})))
 	usersUpdateValidator.Use(middlewares.AuthHandler)
+	usersUpdateValidator.HandleFunc("/", update).Methods("PATCH")
 
+	// ValidatorHandler - Create
 	userCreateValidator := usersRouter.NewRoute().Subrouter()
 	userCreateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.CreateUser{})))
-	userCreateValidator.Use(middlewares.AuthHandler)
-
-	usersRoot := usersRouter.NewRoute().Subrouter()
-	usersRoot.Use(middlewares.RootHandler)
-
-	authenticatedRouter := usersRouter.NewRoute().Subrouter()
-	authenticatedRouter.Use(middlewares.AuthHandler)
-
-	usersUpdateValidator.HandleFunc("/", update).Methods("PATCH")
 	userCreateValidator.HandleFunc("/", create).Methods("POST")
 
-	usersRoot.HandleFunc("/", find).Methods("GET")
-	usersRoot.HandleFunc("/{id}", findOne).Methods("GET")
+	// Protected functions
+	usersProtected := usersRouter.NewRoute().Subrouter()
+	usersProtected.Use(middlewares.AuthHandler)
+	usersProtected.Use(middlewares.ProfilesHandler([]uint{1, 2, 4}))
+	usersProtected.HandleFunc("/", find).Methods("GET")
+	usersProtected.HandleFunc("/{id}", findOne).Methods("GET")
+	usersProtected.HandleFunc("/{id}", delete).Methods("DELETE")
+
+	// Find me
+	authenticatedRouter := usersRouter.NewRoute().Subrouter()
+	authenticatedRouter.Use(middlewares.AuthHandler)
 	authenticatedRouter.HandleFunc("/find/me", findMe).Methods("GET")
-	usersRoot.HandleFunc("/{id}", delete).Methods("DELETE")
 }

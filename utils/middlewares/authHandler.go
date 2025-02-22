@@ -11,6 +11,14 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+type contextKey string
+
+const (
+	UserIDKey    contextKey = "userId"
+	UserTokenKey contextKey = "userToken"
+	UserKey      contextKey = "user"
+)
+
 func AuthHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var jwtKey = []byte(os.Getenv("JWTSECRET"))
@@ -68,9 +76,9 @@ func AuthHandler(next http.Handler) http.Handler {
 		}
 
 		// Create context with both userId and full tokenData
-		ctx := context.WithValue(r.Context(), "userId", tokenData.Id)
-		ctx = context.WithValue(ctx, "userToken", tokenString)
-		ctx = context.WithValue(ctx, "user", tokenData)
+		ctx := context.WithValue(r.Context(), UserIDKey, tokenData.Id)
+		ctx = context.WithValue(ctx, UserTokenKey, tokenString)
+		ctx = context.WithValue(ctx, UserKey, tokenData)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
