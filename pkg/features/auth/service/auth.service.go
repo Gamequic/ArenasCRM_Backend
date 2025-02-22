@@ -3,13 +3,14 @@ package authservice
 import (
 	"context"
 	"os"
-	"storegestserver/pkg/database"
-	authstruct "storegestserver/pkg/features/auth/struct"
-	userservice "storegestserver/pkg/features/users/service"
-	"storegestserver/pkg/session"
-	"storegestserver/utils"
-	"storegestserver/utils/middlewares"
 	"time"
+
+	"github.com/Gamequic/LivePreviewBackend/pkg/database"
+	authstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/struct"
+	userservice "github.com/Gamequic/LivePreviewBackend/pkg/features/users/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/session"
+	"github.com/Gamequic/LivePreviewBackend/utils"
+	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"

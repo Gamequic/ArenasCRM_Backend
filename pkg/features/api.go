@@ -1,13 +1,13 @@
 package featuresApi
 
 import (
-	"storegestserver/pkg/features/auth"
-	authservice "storegestserver/pkg/features/auth/service"
-	"storegestserver/pkg/features/profiles"
-	profileservice "storegestserver/pkg/features/profiles/service"
-	"storegestserver/pkg/features/users"
-	userservice "storegestserver/pkg/features/users/service"
-	"storegestserver/pkg/session"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/auth"
+	authservice "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/profiles"
+	profileservice "github.com/Gamequic/LivePreviewBackend/pkg/features/profiles/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/users"
+	userservice "github.com/Gamequic/LivePreviewBackend/pkg/features/users/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/session"
 
 	"github.com/gorilla/mux"
 )

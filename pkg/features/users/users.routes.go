@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
-	userservice "storegestserver/pkg/features/users/service"
-	userstruct "storegestserver/pkg/features/users/struct"
-	"storegestserver/utils"
-	"storegestserver/utils/middlewares"
 	"strconv"
+
+	userservice "github.com/Gamequic/LivePreviewBackend/pkg/features/users/service"
+	userstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/users/struct"
+	"github.com/Gamequic/LivePreviewBackend/utils"
+	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"

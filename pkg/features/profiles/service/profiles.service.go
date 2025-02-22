@@ -4,10 +4,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"storegestserver/pkg/database"
-	profilestruct "storegestserver/pkg/features/profiles/struct"
-	"storegestserver/utils"
 	"time"
+
+	"github.com/Gamequic/LivePreviewBackend/pkg/database"
+	profilestruct "github.com/Gamequic/LivePreviewBackend/pkg/features/profiles/struct"
+	"github.com/Gamequic/LivePreviewBackend/utils"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"

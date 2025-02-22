@@ -3,9 +3,10 @@ package userservice
 import (
 	"fmt"
 	"net/http"
-	"storegestserver/pkg/database"
-	"storegestserver/utils"
-	"storegestserver/utils/middlewares"
+
+	"github.com/Gamequic/LivePreviewBackend/pkg/database"
+	"github.com/Gamequic/LivePreviewBackend/utils"
+	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"

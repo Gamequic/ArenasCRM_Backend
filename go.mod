@@ -1,4 +1,4 @@
-module storegestserver
+module github.com/Gamequic/LivePreviewBackend
 
 go 1.22.4
 

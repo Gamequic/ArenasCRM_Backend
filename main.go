@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	pkg "storegestserver/pkg/database"
-	featuresApi "storegestserver/pkg/features"
-	"storegestserver/utils"
-	"storegestserver/utils/middlewares"
+
+	pkg "github.com/Gamequic/LivePreviewBackend/pkg/database"
+	featuresApi "github.com/Gamequic/LivePreviewBackend/pkg/features"
+	"github.com/Gamequic/LivePreviewBackend/utils"
+	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
 	"github.com/gorilla/handlers"
 

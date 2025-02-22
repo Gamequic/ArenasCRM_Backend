@@ -3,9 +3,10 @@ package profiles
 import (
 	"encoding/json"
 	"net/http"
-	profileservice "storegestserver/pkg/features/profiles/service"
-	profilestruct "storegestserver/pkg/features/profiles/struct"
 	"strconv"
+
+	profileservice "github.com/Gamequic/LivePreviewBackend/pkg/features/profiles/service"
+	profilestruct "github.com/Gamequic/LivePreviewBackend/pkg/features/profiles/struct"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"

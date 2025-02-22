@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
-	authservice "storegestserver/pkg/features/auth/service"
-	authstruct "storegestserver/pkg/features/auth/struct"
-	"storegestserver/utils/middlewares"
+
+	authservice "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/service"
+	authstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/struct"
+	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
 	"github.com/gorilla/mux"
 )

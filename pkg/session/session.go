@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"storegestserver/pkg/database"
-	authstruct "storegestserver/pkg/features/auth/struct"
-	"storegestserver/utils"
+
+	"github.com/Gamequic/LivePreviewBackend/pkg/database"
+	authstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/struct"
+	"github.com/Gamequic/LivePreviewBackend/utils"
 
 	"go.uber.org/zap"
 )

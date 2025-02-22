@@ -2,7 +2,8 @@ package middlewares
 
 import (
 	"net/http"
-	"storegestserver/utils"
+
+	"github.com/Gamequic/LivePreviewBackend/utils"
 
 	"go.uber.org/zap"
 )

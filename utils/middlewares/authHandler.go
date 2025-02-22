@@ -4,9 +4,10 @@ import (
 	"context"
 	"net/http"
 	"os"
-	authstruct "storegestserver/pkg/features/auth/struct"
-	"storegestserver/pkg/session"
 	"strings"
+
+	authstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/struct"
+	"github.com/Gamequic/LivePreviewBackend/pkg/session"
 
 	"github.com/golang-jwt/jwt"
 )

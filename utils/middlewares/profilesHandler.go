@@ -2,8 +2,9 @@ package middlewares
 
 import (
 	"net/http"
-	authstruct "storegestserver/pkg/features/auth/struct"
 	"strconv"
+
+	authstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/struct"
 )
 
 func ProfilesHandler(profileIDs []uint) func(next http.Handler) http.Handler {
