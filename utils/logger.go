@@ -9,16 +9,31 @@ import (
 )
 
 func NewLogger() *zap.Logger {
-	today := time.Now().Format("2006-01-02")
-	logFileName := "logs/" + today + ".log"
+	today := time.Now()
+	year := today.Format("2006")
+	month := today.Format("01")
 
-	err := os.MkdirAll("logs", os.ModePerm)
+	// Crear la estructura de carpetas logs/YYYY/MM/DD
+	logDir := "logs/" + year + "/" + month
+	logFileName := logDir + "/" + today.Format("2006-01-02") + ".log"
+
+	err := os.MkdirAll(logDir, os.ModePerm)
 	if err != nil {
-		panic("Error creating log folder: " + err.Error())
+		panic("Error creating log folder structure: " + err.Error())
 	}
 
+	// Configurar el formato del log
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.TimeKey = "time"
+	encoderConfig.MessageKey = "msg"
+	encoderConfig.LevelKey = "level"
+	encoderConfig.CallerKey = "caller"
+	encoderConfig.StacktraceKey = "stacktrace"
+	encoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006/01/02 3:04:05 pm")
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+
 	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-	fileEncoder := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+	fileEncoder := zapcore.NewJSONEncoder(encoderConfig)
 	fileWriter := zapcore.AddSync(openLogFile(logFileName))
 
 	core := zapcore.NewTee(
