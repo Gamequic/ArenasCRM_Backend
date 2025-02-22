@@ -3,6 +3,7 @@ package featuresApi
 import (
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/auth"
 	authservice "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/service"
+	logs "github.com/Gamequic/LivePreviewBackend/pkg/features/logsViewer"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/profiles"
 	profileservice "github.com/Gamequic/LivePreviewBackend/pkg/features/profiles/service"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/users"
@@ -23,4 +24,5 @@ func RegisterSubRoutes(router *mux.Router) {
 	users.RegisterSubRoutes(apiRouter)
 	auth.RegisterSubRoutes(apiRouter)
 	profiles.RegisterSubRoutes(apiRouter)
+	logs.RegisterSubRoutes(apiRouter)
 }
