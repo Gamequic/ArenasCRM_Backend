@@ -27,7 +27,7 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 // ValidateToken checks if the token is valid and the session is active
 func ValidateToken(w http.ResponseWriter, r *http.Request) {
 	// Get the token from the context (set by the middleware)
-	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
+	userClaims := r.Context().Value(middlewares.UserKey).(*authstruct.TokenStruct)
 
 	// Validate the session in Redis
 	err := authservice.ValidateSession(userClaims.SessionID, userClaims.Id)
@@ -46,28 +46,6 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 		"email":    userClaims.Email,
 		"username": userClaims.Username,
 	})
-}
-
-// Register function
-
-func RegisterSubRoutes(router *mux.Router) {
-	authRouter := router.PathPrefix("/auth").Subrouter()
-
-	// ValidatorHandler for login
-	authLogInValidator := authRouter.NewRoute().Subrouter()
-	authLogInValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(authstruct.LogIn{})))
-
-	// Protected routes with AuthHandler
-	protectedRoutes := authRouter.NewRoute().Subrouter()
-	protectedRoutes.Use(middlewares.AuthHandler)
-
-	// Public endpoints (login)
-	authLogInValidator.HandleFunc("/login", LogIn).Methods("POST")
-
-	// Protected endpoints
-	protectedRoutes.HandleFunc("/validate", ValidateToken).Methods("GET")
-	protectedRoutes.HandleFunc("/logout", Logout).Methods("POST")
-	protectedRoutes.HandleFunc("/sessions", GetSessions).Methods("GET")
 }
 
 // New handlers for protected routes
@@ -104,4 +82,26 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(sessions)
+}
+
+// Register function
+
+func RegisterSubRoutes(router *mux.Router) {
+	authRouter := router.PathPrefix("/auth").Subrouter()
+
+	// ValidatorHandler for login
+	authLogInValidator := authRouter.NewRoute().Subrouter()
+	authLogInValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(authstruct.LogIn{})))
+
+	// Protected routes with AuthHandler
+	protectedRoutes := authRouter.NewRoute().Subrouter()
+	protectedRoutes.Use(middlewares.AuthHandler)
+
+	// Public endpoints (login)
+	authLogInValidator.HandleFunc("/login", LogIn).Methods("POST")
+
+	// Protected endpoints
+	protectedRoutes.HandleFunc("/validate", ValidateToken).Methods("GET")
+	protectedRoutes.HandleFunc("/logout", Logout).Methods("POST")
+	protectedRoutes.HandleFunc("/sessions", GetSessions).Methods("GET")
 }

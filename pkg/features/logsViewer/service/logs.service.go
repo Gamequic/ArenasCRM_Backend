@@ -10,9 +10,10 @@ import (
 	"strings"
 
 	logsstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/logsViewer/struct"
+	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 )
 
-// Construir estructura de logs
+// Build logs structure
 func BuildTree(basePath, parentID string) ([]logsstruct.TreeLogNode, error) {
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
@@ -40,7 +41,7 @@ func BuildTree(basePath, parentID string) ([]logsstruct.TreeLogNode, error) {
 	return nodes, nil
 }
 
-// Obtener tipo de archivo
+// Get the file type
 func getFileType(fileName string) string {
 	switch strings.ToLower(filepath.Ext(fileName)) {
 	case ".log":
@@ -50,7 +51,7 @@ func getFileType(fileName string) string {
 	}
 }
 
-// Obtener archivo de log
+// Get the log file
 func GetLogFile(date string) (*os.File, error) {
 	logFilePath := filepath.Join("./logs", date[:4], date[5:7], date+".log")
 
@@ -65,17 +66,37 @@ func GetLogFile(date string) (*os.File, error) {
 	return file, nil
 }
 
-// Descargar logs (archivo o carpeta)
-func DownloadLogs(path string, w http.ResponseWriter) error {
+// Dowlaod log or zip logs
+func DownloadLogs(path string, w http.ResponseWriter, r *http.Request) error {
 	fullPath := filepath.Join("./logs", path)
-	info, err := os.Stat(fullPath)
+
+	// Vertify that the path is inside the logs directory
+	cleanFullPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return err
+	}
+	logsBasePath, _ := filepath.Abs("./logs")
+	if !strings.HasPrefix(cleanFullPath, logsBasePath) {
+		panic(middlewares.GormError{
+			Code:    http.StatusForbidden,
+			Message: "File is outside of /logs directory, Stop hacking!",
+			IsGorm:  false,
+		})
+	}
+
+	info, err := os.Stat(cleanFullPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return errors.New("File or directory not found")
+			panic(middlewares.GormError{
+				Code:    http.StatusNotFound,
+				Message: "File not found",
+				IsGorm:  false,
+			})
 		}
 		return err
 	}
 
+	// If it is a directory, zip it
 	if info.IsDir() {
 		zipFileName := filepath.Base(fullPath) + ".zip"
 		w.Header().Set("Content-Disposition", "attachment; filename="+zipFileName)
@@ -87,7 +108,11 @@ func DownloadLogs(path string, w http.ResponseWriter) error {
 		return addDirToZip(zipWriter, fullPath, "")
 	}
 
-	http.ServeFile(w, nil, fullPath)
+	// If it is a file, serve it
+	w.Header().Set("Content-Disposition", "attachment; filename="+info.Name())
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeFile(w, r, fullPath)
+
 	return nil
 }
 

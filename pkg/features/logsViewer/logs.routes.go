@@ -57,7 +57,7 @@ func downloadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = logsservice.DownloadLogs(decodedPath, w)
+	err = logsservice.DownloadLogs(decodedPath, w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
