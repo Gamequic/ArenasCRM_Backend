@@ -84,3 +84,64 @@ func AuthHandler(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+/*
+	Why this code is needed
+	This code has the same purpose as the previous one, but is not a middleware, it can be use in any part of the code.
+	This code is used to validate the users when they are connnecting from a websocket connection.
+*/
+
+func ValidateUser(authHeader string) int {
+	var jwtKey = []byte(os.Getenv("JWTSECRET"))
+
+	// Get token from Authorization header
+	if authHeader == "" {
+		logger.Error("Authorization header missing")
+		return -1
+	}
+
+	// Remove Bearer prefix if present
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	tokenString = strings.Trim(tokenString, `"`) // Remove quotes if present
+
+	// Ensure token is not empty
+	if tokenString == "" {
+		logger.Error("Token is missing after Bearer")
+		return -1
+	}
+
+	// Validate JWT format
+	if !strings.Contains(tokenString, ".") {
+		logger.Error("Token is not in the correct JWT format")
+		return -1
+	}
+
+	// Parse token with claims
+	tokenData := &authstruct.TokenStruct{}
+	token, err := jwt.ParseWithClaims(tokenString, tokenData, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+
+	if err != nil {
+		if err == jwt.ErrSignatureInvalid {
+			logger.Error("Stop hacking!")
+			return -1
+		}
+		logger.Error("Invalid token")
+		return -1
+	}
+
+	if !token.Valid {
+		logger.Error("Invalid token")
+		return -1
+	}
+
+	// Validate session in Redis
+	err = session.ValidateSession(tokenData.SessionID, tokenData.Id)
+	if err != nil {
+		logger.Error("Session expired or invalid")
+		return -1
+	}
+
+	return tokenData.Id
+}

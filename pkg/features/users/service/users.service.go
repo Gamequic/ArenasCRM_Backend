@@ -106,7 +106,7 @@ func Find(u *[]Users) int {
 	return http.StatusOK
 }
 
-func FindOne(user *Users, id uint) int {
+func FindOne(user *Users, id uint, excludePassword ...bool) int {
 	if err := database.DB.First(user, id).Error; err != nil {
 		if err.Error() == "record not found" {
 			panic(middlewares.GormError{Code: 404, Message: "Users not found", IsGorm: true})
@@ -115,8 +115,16 @@ func FindOne(user *Users, id uint) int {
 		}
 	}
 
-	// Exclude password from response
-	user.Password = ""
+	// if excludePassword is not send, set to true
+	exclude := true
+	if len(excludePassword) > 0 {
+		exclude = excludePassword[0]
+	}
+
+	// Exclude password from response if needed
+	if exclude {
+		user.Password = ""
+	}
 
 	user.Profiles = loadUserProfiles(user.ID)
 	return http.StatusOK
@@ -136,16 +144,20 @@ func FindByEmail(user *Users, email string) int {
 func Update(user *Users, userId uint) int {
 	// No autorize editing no existing users
 	var previousUsers Users
-	FindOne(&previousUsers, uint(user.ID))
+	FindOne(&previousUsers, uint(user.ID), false)
 
 	// Is the same user?
 	if user.ID != userId {
 		panic(middlewares.GormError{Code: http.StatusNotAcceptable, Message: "Is not allow to modify others users", IsGorm: true})
 	}
 
-	// Encrypt password
-	bytes, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	user.Password = string(bytes)
+	// Encrypt password if is any
+	if user.Password != "" {
+		bytes, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		user.Password = string(bytes)
+	} else {
+		user.Password = previousUsers.Password
+	}
 
 	if err := database.DB.Save(user).Error; err != nil {
 		if err.Error() == `ERROR: duplicate key value violates unique constraint "uni_users_email" (SQLSTATE 23505)` {

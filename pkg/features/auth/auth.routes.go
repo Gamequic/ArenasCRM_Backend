@@ -50,8 +50,8 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 
 // New handlers for protected routes
 func Logout(w http.ResponseWriter, r *http.Request) {
-	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
-	tokenString := r.Context().Value("userToken").(string)
+	userClaims := r.Context().Value(middlewares.UserKey).(*authstruct.TokenStruct)
+	tokenString := r.Context().Value(middlewares.UserTokenKey).(string)
 
 	err := authservice.Logout(userClaims.Id, tokenString)
 	if err != nil {
@@ -69,7 +69,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSessions(w http.ResponseWriter, r *http.Request) {
-	userClaims := r.Context().Value("user").(*authstruct.TokenStruct)
+	userClaims := r.Context().Value(middlewares.UserKey).(*authstruct.TokenStruct)
 
 	sessions, err := authservice.GetUserSessions(userClaims.Id)
 	if err != nil {
