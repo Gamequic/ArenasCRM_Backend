@@ -6,6 +6,8 @@ import (
 	logs "github.com/Gamequic/LivePreviewBackend/pkg/features/logsViewer"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/notifications"
 	notificationservice "github.com/Gamequic/LivePreviewBackend/pkg/features/notifications/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/pieces"
+	pieceservice "github.com/Gamequic/LivePreviewBackend/pkg/features/pieces/service"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/profiles"
 	profileservice "github.com/Gamequic/LivePreviewBackend/pkg/features/profiles/service"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/system"
@@ -22,6 +24,7 @@ func RegisterSubRoutes(router *mux.Router) {
 	profileservice.InitProfileService()
 	session.InitSessionService()
 	notificationservice.InitNotificationsService()
+	pieceservice.InitPiecesService()
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
@@ -31,4 +34,5 @@ func RegisterSubRoutes(router *mux.Router) {
 	logs.RegisterSubRoutes(apiRouter)
 	system.RegisterSubRoutes(apiRouter)
 	notifications.RegisterSubRoutes(apiRouter)
+	pieces.RegisterSubRoutes(apiRouter)
 }
