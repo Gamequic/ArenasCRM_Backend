@@ -2,7 +2,6 @@ package pieces
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -28,9 +27,6 @@ func create(w http.ResponseWriter, r *http.Request) {
 		utils/middlewares/validatorHandler.go:29:68
 	*/
 	json.NewDecoder(r.Body).Decode(&pieces)
-
-	fmt.Println(r.Body)
-	fmt.Println(pieces)
 
 	pieceservice.Create(&pieces)
 	w.WriteHeader(http.StatusCreated)

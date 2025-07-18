@@ -21,19 +21,19 @@ var Logger *zap.Logger
 // Dentro del struct
 type Pieces struct {
 	gorm.Model
-	PublicId     uint      `gorm:"unique;not null"` // Ahora es numérico
-	Hospital     string    `gorm:"string"`
-	Medico       string    `gorm:"string"`
-	Paciente     string    `gorm:"string"`
-	Pieza        string    `gorm:"string"`
-	Price        float64   `gorm:"type:decimal(10,2)"`
-	IsPaid       bool      `gorm:"default:false"`
-	IsFactura    bool      `gorm:"default:true"`
-	IsAseguranza bool      `gorm:"default:true"`
-	PaidWithCard bool      `gorm:"default:true"`
-	Status       string    `gorm:"string"`
-	Date         time.Time `gorm:"type:date"`
-	RegisteredAt time.Time `gorm:"autoCreateTime:true"`
+
+	PublicId     uint      `gorm:"unique;not null" json:"PublicId"`
+	Hospital     string    `json:"Hospital"`
+	Medico       string    `json:"Medico"`
+	Paciente     string    `json:"Paciente"`
+	Pieza        string    `json:"Pieza"`
+	Price        float64   `json:"Price"`
+	IsPaid       bool      `json:"IsPaid"`
+	IsFactura    bool      `json:"IsFactura"`
+	IsAseguranza bool      `json:"IsAseguranza"`
+	PaidWithCard bool      `json:"PaidWithCard"`
+	Status       string    `json:"Status"`
+	Date         time.Time `json:"Date"`
 }
 
 // Initialize the user service
