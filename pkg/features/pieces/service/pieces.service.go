@@ -50,6 +50,13 @@ func InitPiecesService() {
 func Create(Piece *Pieces) int {
 	// Create users in DB
 	if err := database.DB.Create(Piece).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key value") {
+			panic(middlewares.GormError{
+				Code:    http.StatusBadRequest,
+				Message: "PublicId must be unique",
+				IsGorm:  true,
+			})
+		}
 		panic(err)
 	}
 
