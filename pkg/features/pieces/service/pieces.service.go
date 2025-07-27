@@ -213,6 +213,13 @@ func Update(Piece *Pieces, id uint) int {
 	FindOne(&previousPiece, uint(Piece.ID))
 
 	if err := database.DB.Save(Piece).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key value") {
+			panic(middlewares.GormError{
+				Code:    http.StatusBadRequest,
+				Message: "PublicId must be unique",
+				IsGorm:  true,
+			})
+		}
 		panic(err)
 	}
 
