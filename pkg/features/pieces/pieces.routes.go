@@ -3,11 +3,9 @@ package pieces
 import (
 	"encoding/json"
 	"net/http"
-	"reflect"
 	"strconv"
 
 	pieceservice "github.com/Gamequic/LivePreviewBackend/pkg/features/pieces/service"
-	userstruct "github.com/Gamequic/LivePreviewBackend/pkg/features/users/struct"
 	"github.com/Gamequic/LivePreviewBackend/utils"
 	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
@@ -118,9 +116,9 @@ func RegisterSubRoutes(router *mux.Router) {
 
 	// ValidatorHandler - Update
 	usersUpdateValidator := usersRouter.NewRoute().Subrouter()
-	usersUpdateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.UpdateUser{})))
+	// usersUpdateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.UpdateUser{})))
 	// usersUpdateValidator.Use(middlewares.AuthHandler)
-	usersUpdateValidator.HandleFunc("/", update).Methods("PUT")
+	usersUpdateValidator.HandleFunc("/{id}", update).Methods("PUT")
 
 	// ValidatorHandler - Create
 	piecesCreateValidator := usersRouter.NewRoute().Subrouter()
