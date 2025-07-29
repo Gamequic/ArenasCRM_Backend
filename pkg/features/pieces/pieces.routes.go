@@ -112,25 +112,25 @@ func delete(w http.ResponseWriter, r *http.Request) {
 // Register function
 
 func RegisterSubRoutes(router *mux.Router) {
-	usersRouter := router.PathPrefix("/pieces").Subrouter()
+	piecesRouter := router.PathPrefix("/pieces").Subrouter()
+	piecesRouter.Use(middlewares.AuthHandler)
 
 	// ValidatorHandler - Update
-	usersUpdateValidator := usersRouter.NewRoute().Subrouter()
+	usersUpdateValidator := piecesRouter.NewRoute().Subrouter()
 	// usersUpdateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.UpdateUser{})))
 	// usersUpdateValidator.Use(middlewares.AuthHandler)
 	usersUpdateValidator.HandleFunc("/{id}", update).Methods("PUT")
 
 	// ValidatorHandler - Create
-	piecesCreateValidator := usersRouter.NewRoute().Subrouter()
+	piecesCreateValidator := piecesRouter.NewRoute().Subrouter()
 	// piecesCreateValidator.Use(middlewares.ValidatorHandler(reflect.TypeOf(userstruct.CreateUser{})))
 	piecesCreateValidator.HandleFunc("/", create).Methods("POST")
 
 	// Protected functions
-	usersProtected := usersRouter.NewRoute().Subrouter()
-	// usersProtected.Use(middlewares.AuthHandler)
-	// usersProtected.Use(middlewares.ProfilesHandler([]uint{1, 2, 4}))
-	usersProtected.HandleFunc("/", find).Methods("GET")
-	usersProtected.HandleFunc("/search", findWithFilters).Methods("GET")
-	usersProtected.HandleFunc("/{id}", findOne).Methods("GET")
-	usersProtected.HandleFunc("/{id}", delete).Methods("DELETE")
+	piecesProtected := piecesRouter.NewRoute().Subrouter()
+	// piecesProtected.Use(middlewares.ProfilesHandler([]uint{1, 2, 4}))
+	piecesProtected.HandleFunc("/", find).Methods("GET")
+	piecesProtected.HandleFunc("/search", findWithFilters).Methods("GET")
+	piecesProtected.HandleFunc("/{id}", findOne).Methods("GET")
+	piecesProtected.HandleFunc("/{id}", delete).Methods("DELETE")
 }

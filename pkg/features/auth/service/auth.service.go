@@ -48,8 +48,8 @@ func LogIn(u *authstruct.LogIn) string {
 	database.DB.Raw("SELECT profile_id FROM user_profiles WHERE user_id = ?", user.ID).Scan(&profiles)
 
 	// Create token
-	expirationTime := time.Now().Add(30 * time.Minute)
-	sessionID := uuid.New().String() // Generate a new session ID
+	expirationTime := time.Now().AddDate(0, 6, 0) // six months
+	sessionID := uuid.New().String()              // Generate a new session ID
 	TokenData := &authstruct.TokenStruct{
 		Username:  user.Name,
 		Email:     user.Email,
