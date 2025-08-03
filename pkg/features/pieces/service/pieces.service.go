@@ -1,6 +1,7 @@
 package pieceservice
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -8,6 +9,8 @@ import (
 	"time"
 
 	"github.com/Gamequic/LivePreviewBackend/pkg/database"
+	doctorservice "github.com/Gamequic/LivePreviewBackend/pkg/features/doctor/service"
+	hospitalservice "github.com/Gamequic/LivePreviewBackend/pkg/features/hospital/service"
 	"github.com/Gamequic/LivePreviewBackend/utils"
 	"github.com/Gamequic/LivePreviewBackend/utils/middlewares"
 
@@ -22,18 +25,24 @@ var Logger *zap.Logger
 type Pieces struct {
 	gorm.Model
 
-	PublicId     uint      `gorm:"unique;not null" json:"PublicId"`
-	Hospital     string    `json:"Hospital"`
-	Medico       string    `json:"Medico"`
-	Paciente     string    `json:"Paciente"`
-	Pieza        string    `json:"Pieza"`
-	Price        float64   `json:"Price"`
-	IsPaid       bool      `json:"IsPaid"`
-	IsFactura    bool      `json:"IsFactura"`
-	IsAseguranza bool      `json:"IsAseguranza"`
-	PaidWithCard bool      `json:"PaidWithCard"`
-	Status       string    `json:"Status"`
-	Date         time.Time `json:"Date"`
+	PublicId uint `gorm:"unique;not null" json:"PublicId"`
+
+	HospitalID uint                     `gorm:"not null" json:"HospitalId"`
+	Hospital   hospitalservice.Hospital `gorm:"foreignKey:HospitalID" json:"Hospital"`
+
+	DoctorID uint                 `gorm:"not null" json:"DoctorID"`
+	Doctor   doctorservice.Doctor `gorm:"foreignKey:DoctorID" json:"Doctor"`
+
+	PatientName  string    `json:"PatientName"`
+	PatientAge   uint      `json:"PatientAge"`
+	Pieza        string    `gorm:"not null" json:"Pieza"`
+	Price        float64   `gorm:"not null" json:"Price"`
+	IsPaid       bool      `gorm:"not null" json:"IsPaid"`
+	IsFactura    bool      `gorm:"not null" json:"IsFactura"`
+	IsAseguranza bool      `gorm:"not null" json:"IsAseguranza"`
+	PaidWithCard bool      `gorm:"not null" json:"PaidWithCard"`
+	Date         time.Time `gorm:"not null" json:"Date"`
+	Description  string    `json:"Description"`
 }
 
 // Initialize the user service
@@ -47,16 +56,61 @@ func InitPiecesService() {
 
 // CRUD Operations
 
-func Create(Piece *Pieces) int {
-	// Create users in DB
-	if err := database.DB.Create(Piece).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key value") {
-			panic(middlewares.GormError{
-				Code:    http.StatusBadRequest,
-				Message: "PublicId must be unique",
-				IsGorm:  true,
-			})
+func Create(piece *Pieces) int {
+	// Verifica que el PublicId sea único
+	var count int64
+	database.DB.Model(&Pieces{}).Where("public_id = ?", piece.PublicId).Count(&count)
+	if count > 0 {
+		panic(middlewares.GormError{
+			Code:    http.StatusBadRequest,
+			Message: "PublicId must be unique",
+			IsGorm:  true,
+		})
+	}
+
+	// Buscar o crear hospital
+	var hospital hospitalservice.Hospital
+	err := database.DB.Where("name = ?", piece.Hospital.Name).First(&hospital).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			hospital = hospitalservice.Hospital{Name: piece.Hospital.Name}
+			if err := database.DB.Create(&hospital).Error; err != nil {
+				panic(fmt.Errorf("failed to create hospital: %w", err))
+			}
+		} else {
+			panic(err)
 		}
+	}
+
+	// Buscar o crear doctor
+	var doctor doctorservice.Doctor
+	err = database.DB.Where("name = ?", piece.Doctor.Name).First(&doctor).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			doctor = doctorservice.Doctor{Name: piece.Doctor.Name}
+			if err := database.DB.Create(&doctor).Error; err != nil {
+				panic(fmt.Errorf("failed to create doctor: %w", err))
+			}
+		} else {
+			panic(err)
+		}
+	}
+
+	// Asociar hospital con el doctor (tabla many2many)
+	if err := database.DB.Model(&doctor).Association("Hospitals").Append(&hospital); err != nil {
+		panic(fmt.Errorf("failed to associate doctor and hospital: %w", err))
+	}
+
+	// Asignar IDs
+	piece.HospitalID = hospital.ID
+	piece.DoctorID = doctor.ID
+
+	// Limpiar structs embebidos para evitar error al insertar
+	piece.Hospital = hospitalservice.Hospital{}
+	piece.Doctor = doctorservice.Doctor{}
+
+	// Crear pieza en DB
+	if err := database.DB.Create(piece).Error; err != nil {
 		panic(err)
 	}
 

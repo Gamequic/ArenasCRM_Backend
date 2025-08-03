@@ -3,6 +3,10 @@ package featuresApi
 import (
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/auth"
 	authservice "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/doctor"
+	doctorservice "github.com/Gamequic/LivePreviewBackend/pkg/features/doctor/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/hospital"
+	hospitalservice "github.com/Gamequic/LivePreviewBackend/pkg/features/hospital/service"
 	logs "github.com/Gamequic/LivePreviewBackend/pkg/features/logsViewer"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/notifications"
 	notificationservice "github.com/Gamequic/LivePreviewBackend/pkg/features/notifications/service"
@@ -25,6 +29,8 @@ func RegisterSubRoutes(router *mux.Router) {
 	session.InitSessionService()
 	notificationservice.InitNotificationsService()
 	pieceservice.InitPiecesService()
+	hospitalservice.InitHospitalService()
+	doctorservice.InitDoctorService()
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
@@ -35,4 +41,6 @@ func RegisterSubRoutes(router *mux.Router) {
 	system.RegisterSubRoutes(apiRouter)
 	notifications.RegisterSubRoutes(apiRouter)
 	pieces.RegisterSubRoutes(apiRouter)
+	hospital.RegisterSubRoutes(apiRouter)
+	doctor.RegisterSubRoutes(apiRouter)
 }

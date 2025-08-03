@@ -1,4 +1,4 @@
-package pieces
+package doctor
 
 import (
 	"encoding/json"
@@ -53,34 +53,6 @@ func findOne(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pieces)
 }
 
-func findWithFilters(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-
-	filters := map[string]string{
-		"publicId":          query.Get("publicId"),
-		"hospital":          query.Get("hospital"),
-		"medico":            query.Get("medico"),
-		"paciente":          query.Get("paciente"),
-		"pieza":             query.Get("pieza"),
-		"price":             query.Get("price"),
-		"IsPaid":            query.Get("isPaid"),
-		"IsFactura":         query.Get("isFactura"),
-		"IsAseguranza":      query.Get("isAseguranza"),
-		"PaidWithCard":      query.Get("paidWithCard"),
-		"status":            query.Get("status"),
-		"date":              query.Get("date"),
-		"startDate":         query.Get("startDate"),
-		"endDate":           query.Get("endDate"),
-		"registeredAt":      query.Get("registeredAt"),
-		"startRegisteredAt": query.Get("startRegisteredAt"),
-		"endRegisteredAt":   query.Get("endRegisteredAt"),
-	}
-
-	results, status := pieceservice.FindByFilters(filters)
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(results)
-}
-
 func update(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idInt, err := strconv.Atoi(vars["id"])
@@ -113,7 +85,7 @@ func delete(w http.ResponseWriter, r *http.Request) {
 
 func RegisterSubRoutes(router *mux.Router) {
 	piecesRouter := router.PathPrefix("/pieces").Subrouter()
-	// piecesRouter.Use(middlewares.AuthHandler)
+	piecesRouter.Use(middlewares.AuthHandler)
 
 	// ValidatorHandler - Update
 	usersUpdateValidator := piecesRouter.NewRoute().Subrouter()
@@ -130,7 +102,6 @@ func RegisterSubRoutes(router *mux.Router) {
 	piecesProtected := piecesRouter.NewRoute().Subrouter()
 	// piecesProtected.Use(middlewares.ProfilesHandler([]uint{1, 2, 4}))
 	piecesProtected.HandleFunc("/", find).Methods("GET")
-	piecesProtected.HandleFunc("/search", findWithFilters).Methods("GET")
 	piecesProtected.HandleFunc("/{id}", findOne).Methods("GET")
 	piecesProtected.HandleFunc("/{id}", delete).Methods("DELETE")
 }

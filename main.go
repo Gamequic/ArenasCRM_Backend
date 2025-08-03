@@ -25,29 +25,60 @@ func init() {
 }
 
 func main() {
-	defer Logger.Sync() // flushes buffer, if any
+	// Example usage
+	// excelPath := "./data.xlsx"
+	// sheetName := "JUN" // Change this to your actual sheet name
+
+	// // Check file exists before proceeding
+	// if _, err := os.Stat(excelPath); os.IsNotExist(err) {
+	// 	log.Fatalf("❌ File does not exist: %s", excelPath)
+	// }
+
+	// // Import sheet
+	// rows, err := utils.ImportExcelSheet(excelPath, sheetName)
+	// if err != nil {
+	// 	log.Fatalf("❌ Could not import Excel sheet: %v", err)
+	// }
+
+	// Print all rows
+	// fmt.Println("✅ Excel Data:")
+	// for i, row := range rows {
+	// 	fmt.Printf("Row %d: %v\n", i+1, row)
+	// }
+
+	defer Logger.Sync() // Flush log buffer
 	utils.Dotconfig()
 	pkg.InitDB()
 	pkg.InitRedis()
-	mainRouter := mux.NewRouter()
-	port := os.Getenv("PORT")
 
+	port := os.Getenv("PORT")
+	mainRouter := mux.NewRouter()
+
+	// Middleware for handling errors
 	mainRouter.Use(middlewares.ErrorHandler)
 	mainRouter.Use(middlewares.GormErrorHandler)
 
-	// api
+	// Register all API routes
 	featuresApi.RegisterSubRoutes(mainRouter)
 
-	mainRouter.HandleFunc("/checkhealth", utils.CheckHealth)
+	// Health check endpoint
+	mainRouter.HandleFunc("/checkhealth", utils.CheckHealth).Methods(http.MethodGet)
 
-	// CORS
+	// Optional: Handle preflight requests globally
+	mainRouter.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Correct CORS setup
 	corsObj := handlers.CORS(
-		handlers.AllowedOrigins([]string{"http://localhost:3000"}),
+		handlers.AllowedOrigins([]string{"http://localhost:8081"}), // be specific if possible
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+		handlers.AllowedHeaders([]string{"Authorization", "Content-Type"}),
 	)
 
-	http.Handle("/", corsObj(mainRouter))
-	Logger.Info(fmt.Sprint("Running on 0.0.0.0:", port))
-	http.ListenAndServe(fmt.Sprint(":", port), nil)
+	Logger.Info(fmt.Sprintf("🚀 Server running on 0.0.0.0:%s", port))
+	err := http.ListenAndServe(fmt.Sprintf(":%s", port), corsObj(mainRouter))
+	if err != nil {
+		Logger.Fatal("❌ Server failed to start", zap.Error(err))
+	}
 }
