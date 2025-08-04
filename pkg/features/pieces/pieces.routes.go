@@ -76,8 +76,9 @@ func findWithFilters(w http.ResponseWriter, r *http.Request) {
 		"endRegisteredAt":   query.Get("endRegisteredAt"),
 	}
 
-	results, status := pieceservice.FindByFilters(filters)
-	w.WriteHeader(status)
+	results := pieceservice.FindByFilters(filters)
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(results)
 }
 
