@@ -53,11 +53,11 @@ func Create(Piece *Doctor) int {
 	return http.StatusOK
 }
 
-func Find(Piece *[]Doctor) int {
-	if err := database.DB.Find(Piece).Error; err != nil {
+func Find(Doctor *[]Doctor) int {
+	if err := database.DB.Find(Doctor).Error; err != nil {
 		panic(middlewares.GormError{
 			Code:    http.StatusInternalServerError,
-			Message: "Error retrieving pieces",
+			Message: "Error retrieving doctor",
 			IsGorm:  true,
 		})
 	}

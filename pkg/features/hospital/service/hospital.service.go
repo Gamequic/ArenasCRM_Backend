@@ -3,7 +3,6 @@ package hospitalservice
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Gamequic/LivePreviewBackend/pkg/database"
 	"github.com/Gamequic/LivePreviewBackend/utils"
@@ -33,24 +32,24 @@ func InitHospitalService() {
 
 // CRUD Operations
 
-func Create(Piece *Hospital) int {
-	// Create users in DB
-	if err := database.DB.Create(Piece).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key value") {
-			panic(middlewares.GormError{
-				Code:    http.StatusBadRequest,
-				Message: "PublicId must be unique",
-				IsGorm:  true,
-			})
-		}
-		panic(err)
-	}
+// func Create(Piece *Hospital) int {
+// 	// Create users in DB
+// 	if err := database.DB.Create(Piece).Error; err != nil {
+// 		if strings.Contains(err.Error(), "duplicate key value") {
+// 			panic(middlewares.GormError{
+// 				Code:    http.StatusBadRequest,
+// 				Message: "PublicId must be unique",
+// 				IsGorm:  true,
+// 			})
+// 		}
+// 		panic(err)
+// 	}
 
-	return http.StatusOK
-}
+// 	return http.StatusOK
+// }
 
-func Find(Piece *[]Hospital) int {
-	if err := database.DB.Find(Piece).Error; err != nil {
+func Find(Hospitals *[]Hospital) int {
+	if err := database.DB.Find(Hospitals).Error; err != nil {
 		panic(middlewares.GormError{
 			Code:    http.StatusInternalServerError,
 			Message: "Error retrieving pieces",
@@ -60,44 +59,44 @@ func Find(Piece *[]Hospital) int {
 	return http.StatusOK
 }
 
-func FindOne(Piece *Hospital, id uint) int {
-	if err := database.DB.First(Piece, id).Error; err != nil {
-		if err.Error() == "record not found" {
-			panic(middlewares.GormError{Code: 404, Message: "Piece not found", IsGorm: true})
-		} else {
-			panic(err)
-		}
-	}
-	return http.StatusOK
-}
+// func FindOne(Piece *Hospital, id uint) int {
+// 	if err := database.DB.First(Piece, id).Error; err != nil {
+// 		if err.Error() == "record not found" {
+// 			panic(middlewares.GormError{Code: 404, Message: "Piece not found", IsGorm: true})
+// 		} else {
+// 			panic(err)
+// 		}
+// 	}
+// 	return http.StatusOK
+// }
 
-func Update(Piece *Hospital, id uint) int {
-	// No autorize editing no existing pieces
-	var previousPiece Hospital
-	FindOne(&previousPiece, uint(Piece.ID))
+// func Update(Piece *Hospital, id uint) int {
+// 	// No autorize editing no existing pieces
+// 	var previousPiece Hospital
+// 	FindOne(&previousPiece, uint(Piece.ID))
 
-	if err := database.DB.Save(Piece).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key value") {
-			panic(middlewares.GormError{
-				Code:    http.StatusBadRequest,
-				Message: "PublicId must be unique",
-				IsGorm:  true,
-			})
-		}
-		panic(err)
-	}
+// 	if err := database.DB.Save(Piece).Error; err != nil {
+// 		if strings.Contains(err.Error(), "duplicate key value") {
+// 			panic(middlewares.GormError{
+// 				Code:    http.StatusBadRequest,
+// 				Message: "PublicId must be unique",
+// 				IsGorm:  true,
+// 			})
+// 		}
+// 		panic(err)
+// 	}
 
-	return http.StatusOK
-}
+// 	return http.StatusOK
+// }
 
-func Delete(id int) {
-	Logger = utils.NewLogger()
+// func Delete(id int) {
+// 	Logger = utils.NewLogger()
 
-	// No autorize deleting no existing pieces
-	var previousPiece Hospital
-	FindOne(&previousPiece, uint(id))
+// 	// No autorize deleting no existing pieces
+// 	var previousPiece Hospital
+// 	FindOne(&previousPiece, uint(id))
 
-	if err := database.DB.Delete(&Hospital{}, id).Error; err != nil {
-		panic(err)
-	}
-}
+// 	if err := database.DB.Delete(&Hospital{}, id).Error; err != nil {
+// 		panic(err)
+// 	}
+// }
