@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -144,36 +145,74 @@ func FindByFilters(filters map[string]string) []Pieces {
 
 	var results []Pieces
 
-	// Inicia query base
+	// Base query con Preloads válidos y orden descendente
 	query := database.DB.Model(&Pieces{}).
 		Preload("Doctor").
 		Preload("Hospital").
-		Preload("Patient").
 		Order("created_at DESC")
 
-	// Filtrar por ID público
-	if publicId := filters["publicId"]; publicId != "" && publicId != "null" {
-		query = query.Where("public_id = ?", publicId)
+	// --- FILTROS ---
+
+	// Filtrar por publicId (string -> uint)
+	if publicIdStr := filters["publicId"]; publicIdStr != "" && publicIdStr != "null" {
+		publicId, err := strconv.ParseUint(publicIdStr, 10, 64)
+		if err == nil {
+			query = query.Where("public_id = ?", publicId)
+		}
 	}
 
-	// Filtrar por nombre del paciente
-	if patientName := filters["patientName"]; patientName != "" && patientName != "null" {
-		query = query.Where("LOWER(patient_name) LIKE ?", "%"+strings.ToLower(patientName)+"%")
+	// Filtrar por paciente (campo string patient_name en Pieces)
+	if paciente := filters["paciente"]; paciente != "" && paciente != "null" {
+		query = query.Where("LOWER(patient_name) LIKE ?", "%"+strings.ToLower(paciente)+"%")
 	}
 
-	// Filtrar por doctor
-	if doctor := filters["doctor"]; doctor != "" && doctor != "null" {
+	// Filtrar por medico (JOIN con tabla doctors)
+	if medico := filters["medico"]; medico != "" && medico != "null" {
 		query = query.Joins("JOIN doctors ON pieces.doctor_id = doctors.id").
-			Where("LOWER(doctors.name) LIKE ?", "%"+strings.ToLower(doctor)+"%")
+			Where("LOWER(doctors.name) LIKE ?", "%"+strings.ToLower(medico)+"%")
 	}
 
-	// Filtrar por hospital
+	// Filtrar por hospital (JOIN con tabla hospitals)
 	if hospital := filters["hospital"]; hospital != "" && hospital != "null" {
 		query = query.Joins("JOIN hospitals ON pieces.hospital_id = hospitals.id").
 			Where("LOWER(hospitals.name) LIKE ?", "%"+strings.ToLower(hospital)+"%")
 	}
 
-	// Rango de fecha (campo: date)
+	// Filtrar por pieza (string)
+	if pieza := filters["pieza"]; pieza != "" && pieza != "null" {
+		query = query.Where("LOWER(pieza) LIKE ?", "%"+strings.ToLower(pieza)+"%")
+	}
+
+	// Filtrar por price (float)
+	if priceStr := filters["price"]; priceStr != "" && priceStr != "null" {
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err == nil {
+			query = query.Where("price = ?", price)
+		}
+	}
+
+	boolFilters := map[string]string{
+		"IsPaid":       "is_paid",
+		"IsFactura":    "is_factura",
+		"IsAseguranza": "is_aseguranza",
+		"PaidWithCard": "paid_with_card",
+	}
+
+	for paramKey, dbColumn := range boolFilters {
+		if valStr := filters[paramKey]; valStr != "" && valStr != "null" {
+			valBool, err := strconv.ParseBool(valStr)
+			if err == nil {
+				query = query.Where(dbColumn+" = ?", valBool)
+			}
+		}
+	}
+
+	// Filtrar por status (string)
+	if status := filters["status"]; status != "" && status != "null" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Filtrar por rango fechas campo 'date'
 	startDate, endDate := strings.TrimSpace(filters["startDate"]), strings.TrimSpace(filters["endDate"])
 	if startDate != "" && startDate != "null" && endDate != "" && endDate != "null" {
 		startParsed, errStart := time.ParseInLocation(dateLayout, startDate, loc)
@@ -182,6 +221,7 @@ func FindByFilters(filters map[string]string) []Pieces {
 			if startParsed.After(endParsed) {
 				startParsed, endParsed = endParsed, startParsed
 			}
+			// Incluye todo el día final
 			endParsed = endParsed.Add(24 * time.Hour)
 			query = query.Where("pieces.date >= ? AND pieces.date < ?", startParsed, endParsed)
 		}
@@ -197,7 +237,7 @@ func FindByFilters(filters map[string]string) []Pieces {
 		}
 	}
 
-	// Rango de fecha de creación (campo: created_at)
+	// Filtrar por rango fechas campo 'created_at'
 	startReg, endReg := strings.TrimSpace(filters["startRegisteredAt"]), strings.TrimSpace(filters["endRegisteredAt"])
 	if startReg != "" && startReg != "null" && endReg != "" && endReg != "null" {
 		startParsed, errStart := time.ParseInLocation(dateLayout, startReg, loc)
