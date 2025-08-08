@@ -212,6 +212,15 @@ func FindByFilters(filters map[string]string) []Pieces {
 		query = query.Where("status = ?", status)
 	}
 
+	// Filtrar por fecha exacta campo 'date'
+	if dateStr := strings.TrimSpace(filters["date"]); dateStr != "" && dateStr != "null" {
+		dateParsed, err := time.ParseInLocation(dateLayout, dateStr, loc)
+		if err == nil {
+			// Tomamos todo el día de dateParsed
+			query = query.Where("pieces.date >= ? AND pieces.date < ?", dateParsed, dateParsed.Add(24*time.Hour))
+		}
+	}
+
 	// Filtrar por rango fechas campo 'date'
 	startDate, endDate := strings.TrimSpace(filters["startDate"]), strings.TrimSpace(filters["endDate"])
 	if startDate != "" && startDate != "null" && endDate != "" && endDate != "null" {
