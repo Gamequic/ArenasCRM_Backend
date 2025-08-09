@@ -129,13 +129,25 @@ func Find(Piece *[]Pieces) int {
 }
 
 func FindOne(Piece *Pieces, id uint) int {
-	if err := database.DB.First(Piece, id).Error; err != nil {
+	// Query con preloads para traer relaciones
+	if err := database.DB.Model(&Pieces{}).
+		Preload("Doctor").
+		Preload("Hospital").
+		First(Piece, id).Error; err != nil {
+
+		// Manejo de errores: registro no encontrado
 		if err.Error() == "record not found" {
-			panic(middlewares.GormError{Code: 404, Message: "Piece not found", IsGorm: true})
+			panic(middlewares.GormError{
+				Code:    404,
+				Message: "Piece not found",
+				IsGorm:  true,
+			})
 		} else {
+			// Otro tipo de error
 			panic(err)
 		}
 	}
+
 	return http.StatusOK
 }
 
@@ -276,19 +288,95 @@ func FindByFilters(filters map[string]string) []Pieces {
 	return results
 }
 
-func Update(Piece *Pieces, id uint) int {
-	// No autorize editing no existing pieces
-	var previousPiece Pieces
-	FindOne(&previousPiece, uint(Piece.ID))
-
-	if err := database.DB.Save(Piece).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key value") {
+func Update(piece *Pieces, id uint) int {
+	// Verificar que la pieza exista
+	var existingPiece Pieces
+	if err := database.DB.First(&existingPiece, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			panic(middlewares.GormError{
-				Code:    http.StatusBadRequest,
-				Message: "PublicId must be unique",
+				Code:    http.StatusNotFound,
+				Message: "Piece not found",
 				IsGorm:  true,
 			})
 		}
+		panic(err)
+	}
+
+	// Validar que PublicId sea único (excepto si es el mismo de la pieza actual)
+	var count int64
+	database.DB.Model(&Pieces{}).
+		Where("public_id = ? AND id != ?", piece.PublicId, id).
+		Count(&count)
+	if count > 0 {
+		panic(middlewares.GormError{
+			Code:    http.StatusBadRequest,
+			Message: "PublicId must be unique",
+			IsGorm:  true,
+		})
+	}
+
+	// Buscar o crear hospital
+	var hospital hospitalservice.Hospital
+	err := database.DB.Where("name = ?", piece.Hospital.Name).First(&hospital).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			hospital = hospitalservice.Hospital{Name: piece.Hospital.Name}
+			if err := database.DB.Create(&hospital).Error; err != nil {
+				panic(fmt.Errorf("failed to create hospital: %w", err))
+			}
+		} else {
+			panic(err)
+		}
+	}
+
+	// Buscar o crear doctor
+	var doctor doctorservice.Doctor
+	err = database.DB.Where("name = ?", piece.Doctor.Name).First(&doctor).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			doctor = doctorservice.Doctor{Name: piece.Doctor.Name}
+			if err := database.DB.Create(&doctor).Error; err != nil {
+				panic(fmt.Errorf("failed to create doctor: %w", err))
+			}
+		} else {
+			panic(err)
+		}
+	}
+
+	// Asociar hospital con doctor (many2many)
+	if err := database.DB.Model(&doctor).Association("Hospitals").Append(&hospital); err != nil {
+		panic(fmt.Errorf("failed to associate doctor and hospital: %w", err))
+	}
+
+	// Asignar IDs
+	piece.HospitalID = hospital.ID
+	piece.DoctorID = doctor.ID
+
+	// Limpiar structs embebidos para evitar problemas en Save
+	piece.Hospital = hospitalservice.Hospital{}
+	piece.Doctor = doctorservice.Doctor{}
+
+	// Forzar que el ID sea el correcto
+	piece.ID = existingPiece.ID
+
+	// Actualizar con mapa para incluir booleanos aunque sean false
+	updates := map[string]interface{}{
+		"public_id":      piece.PublicId,
+		"date":           piece.Date,
+		"hospital_id":    piece.HospitalID,
+		"doctor_id":      piece.DoctorID,
+		"patient_name":   piece.PatientName,
+		"patient_age":    piece.PatientAge,
+		"pieza":          piece.Pieza,
+		"price":          piece.Price,
+		"is_paid":        piece.IsPaid,
+		"is_factura":     piece.IsFactura,
+		"is_aseguranza":  piece.IsAseguranza,
+		"paid_with_card": piece.PaidWithCard,
+		"description":    piece.Description,
+	}
+
+	if err := database.DB.Model(&existingPiece).Updates(updates).Error; err != nil {
 		panic(err)
 	}
 
