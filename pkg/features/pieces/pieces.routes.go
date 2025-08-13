@@ -114,7 +114,7 @@ func delete(w http.ResponseWriter, r *http.Request) {
 
 func RegisterSubRoutes(router *mux.Router) {
 	piecesRouter := router.PathPrefix("/pieces").Subrouter()
-	// piecesRouter.Use(middlewares.AuthHandler)
+	piecesRouter.Use(middlewares.AuthHandler)
 
 	// ValidatorHandler - Update
 	usersUpdateValidator := piecesRouter.NewRoute().Subrouter()

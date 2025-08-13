@@ -5,6 +5,8 @@ import (
 	authservice "github.com/Gamequic/LivePreviewBackend/pkg/features/auth/service"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/doctor"
 	doctorservice "github.com/Gamequic/LivePreviewBackend/pkg/features/doctor/service"
+	"github.com/Gamequic/LivePreviewBackend/pkg/features/files"
+	fileservice "github.com/Gamequic/LivePreviewBackend/pkg/features/files/service"
 	"github.com/Gamequic/LivePreviewBackend/pkg/features/hospital"
 	hospitalservice "github.com/Gamequic/LivePreviewBackend/pkg/features/hospital/service"
 	logs "github.com/Gamequic/LivePreviewBackend/pkg/features/logsViewer"
@@ -31,6 +33,7 @@ func RegisterSubRoutes(router *mux.Router) {
 	pieceservice.InitPiecesService()
 	hospitalservice.InitHospitalService()
 	doctorservice.InitDoctorService()
+	fileservice.InitAuthService()
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
@@ -43,4 +46,5 @@ func RegisterSubRoutes(router *mux.Router) {
 	pieces.RegisterSubRoutes(apiRouter)
 	hospital.RegisterSubRoutes(apiRouter)
 	doctor.RegisterSubRoutes(apiRouter)
+	files.RegisterFileRoutes(apiRouter)
 }
