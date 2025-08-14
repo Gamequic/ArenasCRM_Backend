@@ -36,7 +36,8 @@ type Pieces struct {
 	PatientName  string    `json:"PatientName"`
 	PatientAge   uint      `json:"PatientAge"`
 	Pieza        string    `gorm:"not null" json:"Pieza"`
-	Price        float64   `gorm:"not null" json:"Price"`
+	PriceTotal   float64   `gorm:"not null" json:"PriceTotal"`
+	PricePaid    float64   `gorm:"not null" json:"PricePaid"`
 	IsPaid       bool      `gorm:"not null" json:"IsPaid"`
 	IsFactura    bool      `gorm:"not null" json:"IsFactura"`
 	IsAseguranza bool      `gorm:"not null" json:"IsAseguranza"`
@@ -368,7 +369,8 @@ func Update(piece *Pieces, id uint) int {
 		"patient_name":   piece.PatientName,
 		"patient_age":    piece.PatientAge,
 		"pieza":          piece.Pieza,
-		"price":          piece.Price,
+		"price_total":    piece.PriceTotal,
+		"price_paid":     piece.PricePaid,
 		"is_paid":        piece.IsPaid,
 		"is_factura":     piece.IsFactura,
 		"is_aseguranza":  piece.IsAseguranza,
