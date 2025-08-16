@@ -57,29 +57,43 @@ func findWithFilters(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	filters := map[string]string{
-		"publicId":          query.Get("publicId"),
-		"hospital":          query.Get("hospital"),
-		"medico":            query.Get("medico"),
-		"paciente":          query.Get("paciente"),
-		"pieza":             query.Get("pieza"),
-		"price":             query.Get("price"),
-		"IsPaid":            query.Get("isPaid"),
-		"IsFactura":         query.Get("isFactura"),
-		"IsAseguranza":      query.Get("isAseguranza"),
-		"PaidWithCard":      query.Get("paidWithCard"),
-		"status":            query.Get("status"),
-		"date":              query.Get("date"),
-		"startDate":         query.Get("startDate"),
-		"endDate":           query.Get("endDate"),
+		"publicId":     query.Get("publicId"),
+		"hospital":     query.Get("hospital"),
+		"medico":       query.Get("medico"),
+		"paciente":     query.Get("paciente"),
+		"pieza":        query.Get("pieza"),
+		"price":        query.Get("price"),
+		"IsPaid":       query.Get("isPaid"),
+		"IsFactura":    query.Get("isFactura"),
+		"IsAseguranza": query.Get("isAseguranza"),
+		"PaidWithCard": query.Get("paidWithCard"),
+		"status":       query.Get("status"),
+
+		// Fechas generales
+		"date":      query.Get("date"),
+		"startDate": query.Get("startDate"),
+		"endDate":   query.Get("endDate"),
+
+		// Registro
 		"registeredAt":      query.Get("registeredAt"),
 		"startRegisteredAt": query.Get("startRegisteredAt"),
 		"endRegisteredAt":   query.Get("endRegisteredAt"),
+
+		// Nuevas fechas
+		"receivedAt":      query.Get("receivedAt"),
+		"startReceivedAt": query.Get("startReceivedAt"),
+		"endReceivedAt":   query.Get("endReceivedAt"),
+
+		"deliveredAt":      query.Get("deliveredAt"),
+		"startDeliveredAt": query.Get("startDeliveredAt"),
+		"endDeliveredAt":   query.Get("endDeliveredAt"),
 	}
 
 	results := pieceservice.FindByFilters(filters)
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(results)
 }
 
 func update(w http.ResponseWriter, r *http.Request) {

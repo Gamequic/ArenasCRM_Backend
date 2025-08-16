@@ -33,8 +33,10 @@ type Pieces struct {
 	DoctorID uint                 `gorm:"not null" json:"DoctorID"`
 	Doctor   doctorservice.Doctor `gorm:"foreignKey:DoctorID" json:"Doctor"`
 
-	PatientName  string    `json:"PatientName"`
-	PatientAge   uint      `json:"PatientAge"`
+	PatientName   string `json:"PatientName"`
+	PatientAge    uint   `json:"PatientAge"`
+	PatientGender string `json:"PatientGender"`
+
 	Pieza        string    `gorm:"not null" json:"Pieza"`
 	PriceTotal   float64   `gorm:"not null" json:"PriceTotal"`
 	PricePaid    float64   `gorm:"not null" json:"PricePaid"`
@@ -42,7 +44,8 @@ type Pieces struct {
 	IsFactura    bool      `gorm:"not null" json:"IsFactura"`
 	IsAseguranza bool      `gorm:"not null" json:"IsAseguranza"`
 	PaidWithCard bool      `gorm:"not null" json:"PaidWithCard"`
-	Date         time.Time `gorm:"not null" json:"Date"`
+	ReceivedAt   time.Time `json:"receivedAt"`
+	DeliveredAt  time.Time `json:"deliveredAt"`
 	Description  string    `json:"Description"`
 }
 
@@ -158,49 +161,39 @@ func FindByFilters(filters map[string]string) []Pieces {
 
 	var results []Pieces
 
-	// Base query con Preloads válidos y orden descendente
 	query := database.DB.Model(&Pieces{}).
 		Preload("Doctor").
 		Preload("Hospital").
 		Order("created_at DESC")
 
-	// --- FILTROS ---
-
-	// Filtrar por publicId (string -> uint)
+	// --- FILTROS BÁSICOS ---
 	if publicIdStr := filters["publicId"]; publicIdStr != "" && publicIdStr != "null" {
-		publicId, err := strconv.ParseUint(publicIdStr, 10, 64)
-		if err == nil {
+		if publicId, err := strconv.ParseUint(publicIdStr, 10, 64); err == nil {
 			query = query.Where("public_id = ?", publicId)
 		}
 	}
 
-	// Filtrar por paciente (campo string patient_name en Pieces)
 	if paciente := filters["paciente"]; paciente != "" && paciente != "null" {
 		query = query.Where("LOWER(patient_name) LIKE ?", "%"+strings.ToLower(paciente)+"%")
 	}
 
-	// Filtrar por medico (JOIN con tabla doctors)
 	if medico := filters["medico"]; medico != "" && medico != "null" {
 		query = query.Joins("JOIN doctors ON pieces.doctor_id = doctors.id").
 			Where("LOWER(doctors.name) LIKE ?", "%"+strings.ToLower(medico)+"%")
 	}
 
-	// Filtrar por hospital (JOIN con tabla hospitals)
 	if hospital := filters["hospital"]; hospital != "" && hospital != "null" {
 		query = query.Joins("JOIN hospitals ON pieces.hospital_id = hospitals.id").
 			Where("LOWER(hospitals.name) LIKE ?", "%"+strings.ToLower(hospital)+"%")
 	}
 
-	// Filtrar por pieza (string)
 	if pieza := filters["pieza"]; pieza != "" && pieza != "null" {
 		query = query.Where("LOWER(pieza) LIKE ?", "%"+strings.ToLower(pieza)+"%")
 	}
 
-	// Filtrar por price (float)
 	if priceStr := filters["price"]; priceStr != "" && priceStr != "null" {
-		price, err := strconv.ParseFloat(priceStr, 64)
-		if err == nil {
-			query = query.Where("price = ?", price)
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+			query = query.Where("price_total = ?", price)
 		}
 	}
 
@@ -210,87 +203,62 @@ func FindByFilters(filters map[string]string) []Pieces {
 		"IsAseguranza": "is_aseguranza",
 		"PaidWithCard": "paid_with_card",
 	}
-
 	for paramKey, dbColumn := range boolFilters {
 		if valStr := filters[paramKey]; valStr != "" && valStr != "null" {
-			valBool, err := strconv.ParseBool(valStr)
-			if err == nil {
+			if valBool, err := strconv.ParseBool(valStr); err == nil {
 				query = query.Where(dbColumn+" = ?", valBool)
 			}
 		}
 	}
 
-	// Filtrar por status (string)
 	if status := filters["status"]; status != "" && status != "null" {
 		query = query.Where("status = ?", status)
 	}
 
-	// Filtrar por fecha exacta campo 'date'
-	if dateStr := strings.TrimSpace(filters["date"]); dateStr != "" && dateStr != "null" {
-		dateParsed, err := time.ParseInLocation(dateLayout, dateStr, loc)
-		if err == nil {
-			// Tomamos todo el día de dateParsed
-			query = query.Where("pieces.date >= ? AND pieces.date < ?", dateParsed, dateParsed.Add(24*time.Hour))
+	// --- FILTROS DE FECHAS ---
+	addDateFilter := func(field string, exact, start, end string) {
+		if exact != "" && exact != "null" {
+			if parsed, err := time.ParseInLocation(dateLayout, exact, loc); err == nil {
+				query = query.Where(fmt.Sprintf("pieces.%s >= ? AND pieces.%s < ?", field, field), parsed, parsed.Add(24*time.Hour))
+			}
+		}
+		if start != "" && start != "null" && end != "" && end != "null" {
+			if startParsed, errStart := time.ParseInLocation(dateLayout, start, loc); errStart == nil {
+				if endParsed, errEnd := time.ParseInLocation(dateLayout, end, loc); errEnd == nil {
+					if startParsed.After(endParsed) {
+						startParsed, endParsed = endParsed, startParsed
+					}
+					query = query.Where(fmt.Sprintf("pieces.%s >= ? AND pieces.%s < ?", field, field), startParsed, endParsed.Add(24*time.Hour))
+				}
+			}
+		} else if start != "" && start != "null" {
+			if startParsed, err := time.ParseInLocation(dateLayout, start, loc); err == nil {
+				query = query.Where(fmt.Sprintf("pieces.%s >= ?", field), startParsed)
+			}
+		} else if end != "" && end != "null" {
+			if endParsed, err := time.ParseInLocation(dateLayout, end, loc); err == nil {
+				query = query.Where(fmt.Sprintf("pieces.%s < ?", field), endParsed.Add(24*time.Hour))
+			}
 		}
 	}
 
-	// Filtrar por rango fechas campo 'date'
-	startDate, endDate := strings.TrimSpace(filters["startDate"]), strings.TrimSpace(filters["endDate"])
-	if startDate != "" && startDate != "null" && endDate != "" && endDate != "null" {
-		startParsed, errStart := time.ParseInLocation(dateLayout, startDate, loc)
-		endParsed, errEnd := time.ParseInLocation(dateLayout, endDate, loc)
-		if errStart == nil && errEnd == nil {
-			if startParsed.After(endParsed) {
-				startParsed, endParsed = endParsed, startParsed
-			}
-			// Incluye todo el día final
-			endParsed = endParsed.Add(24 * time.Hour)
-			query = query.Where("pieces.date >= ? AND pieces.date < ?", startParsed, endParsed)
-		}
-	} else if startDate != "" && startDate != "null" {
-		startParsed, err := time.ParseInLocation(dateLayout, startDate, loc)
-		if err == nil {
-			query = query.Where("pieces.date >= ?", startParsed)
-		}
-	} else if endDate != "" && endDate != "null" {
-		endParsed, err := time.ParseInLocation(dateLayout, endDate, loc)
-		if err == nil {
-			query = query.Where("pieces.date < ?", endParsed.Add(24*time.Hour))
-		}
-	}
+	// Fecha principal (date)
+	addDateFilter("date", filters["date"], filters["startDate"], filters["endDate"])
 
-	// Filtrar por rango fechas campo 'created_at'
-	startReg, endReg := strings.TrimSpace(filters["startRegisteredAt"]), strings.TrimSpace(filters["endRegisteredAt"])
-	if startReg != "" && startReg != "null" && endReg != "" && endReg != "null" {
-		startParsed, errStart := time.ParseInLocation(dateLayout, startReg, loc)
-		endParsed, errEnd := time.ParseInLocation(dateLayout, endReg, loc)
-		if errStart == nil && errEnd == nil {
-			if startParsed.After(endParsed) {
-				startParsed, endParsed = endParsed, startParsed
-			}
-			endParsed = endParsed.Add(24 * time.Hour)
-			query = query.Where("pieces.created_at >= ? AND pieces.created_at < ?", startParsed, endParsed)
-		}
-	} else if startReg != "" && startReg != "null" {
-		startParsed, err := time.ParseInLocation(dateLayout, startReg, loc)
-		if err == nil {
-			query = query.Where("pieces.created_at >= ?", startParsed)
-		}
-	} else if endReg != "" && endReg != "null" {
-		endParsed, err := time.ParseInLocation(dateLayout, endReg, loc)
-		if err == nil {
-			query = query.Where("pieces.created_at < ?", endParsed.Add(24*time.Hour))
-		}
-	}
+	// Fecha registro (created_at)
+	addDateFilter("created_at", filters["registeredAt"], filters["startRegisteredAt"], filters["endRegisteredAt"])
+
+	// Nuevas fechas
+	addDateFilter("received_at", filters["receivedAt"], filters["startReceivedAt"], filters["endReceivedAt"])
+	addDateFilter("delivered_at", filters["deliveredAt"], filters["startDeliveredAt"], filters["endDeliveredAt"])
 
 	// Ejecutar consulta
 	query.Find(&results)
-
 	return results
 }
 
 func Update(piece *Pieces, id uint) int {
-	// Verificar que la pieza exista
+	// 1. Verificar que la pieza exista
 	var existingPiece Pieces
 	if err := database.DB.First(&existingPiece, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -303,7 +271,7 @@ func Update(piece *Pieces, id uint) int {
 		panic(err)
 	}
 
-	// Validar que PublicId sea único (excepto si es el mismo de la pieza actual)
+	// 2. Validar que PublicId sea único
 	var count int64
 	database.DB.Model(&Pieces{}).
 		Where("public_id = ? AND id != ?", piece.PublicId, id).
@@ -316,7 +284,7 @@ func Update(piece *Pieces, id uint) int {
 		})
 	}
 
-	// Buscar o crear hospital
+	// 3. Buscar o crear hospital
 	var hospital hospitalservice.Hospital
 	err := database.DB.Where("name = ?", piece.Hospital.Name).First(&hospital).Error
 	if err != nil {
@@ -330,7 +298,7 @@ func Update(piece *Pieces, id uint) int {
 		}
 	}
 
-	// Buscar o crear doctor
+	// 4. Buscar o crear doctor
 	var doctor doctorservice.Doctor
 	err = database.DB.Where("name = ?", piece.Doctor.Name).First(&doctor).Error
 	if err != nil {
@@ -344,30 +312,26 @@ func Update(piece *Pieces, id uint) int {
 		}
 	}
 
-	// Asociar hospital con doctor (many2many)
+	// 5. Asociar doctor y hospital
 	if err := database.DB.Model(&doctor).Association("Hospitals").Append(&hospital); err != nil {
 		panic(fmt.Errorf("failed to associate doctor and hospital: %w", err))
 	}
 
-	// Asignar IDs
+	// 6. Asignar IDs y limpiar structs embebidos
 	piece.HospitalID = hospital.ID
 	piece.DoctorID = doctor.ID
-
-	// Limpiar structs embebidos para evitar problemas en Save
 	piece.Hospital = hospitalservice.Hospital{}
 	piece.Doctor = doctorservice.Doctor{}
-
-	// Forzar que el ID sea el correcto
 	piece.ID = existingPiece.ID
 
-	// Actualizar con mapa para incluir booleanos aunque sean false
+	// 7. Actualizar incluyendo los nuevos campos de fechas
 	updates := map[string]interface{}{
 		"public_id":      piece.PublicId,
-		"date":           piece.Date,
 		"hospital_id":    piece.HospitalID,
 		"doctor_id":      piece.DoctorID,
 		"patient_name":   piece.PatientName,
 		"patient_age":    piece.PatientAge,
+		"patient_gender": piece.PatientGender,
 		"pieza":          piece.Pieza,
 		"price_total":    piece.PriceTotal,
 		"price_paid":     piece.PricePaid,
@@ -376,6 +340,8 @@ func Update(piece *Pieces, id uint) int {
 		"is_aseguranza":  piece.IsAseguranza,
 		"paid_with_card": piece.PaidWithCard,
 		"description":    piece.Description,
+		"received_at":    piece.ReceivedAt,
+		"delivered_at":   piece.DeliveredAt,
 	}
 
 	if err := database.DB.Model(&existingPiece).Updates(updates).Error; err != nil {
